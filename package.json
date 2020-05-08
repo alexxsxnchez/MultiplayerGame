@@ -4,9 +4,9 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-	"build": "browserify public/js/main.js -o public/bundle.js",
+    "build": "browserify public/js/main.js -o public/bundle.js",
     "start": "node server/server.js",
-	"test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
@@ -14,5 +14,7 @@
     "express": "^4.17.1",
     "socket.io": "^2.3.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "browserify": "^16.5.1"
+  }
 }
