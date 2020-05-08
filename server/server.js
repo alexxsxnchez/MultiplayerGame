@@ -9,7 +9,7 @@ const port = process.env.PORT || 1000;
 app.use(express.static('public'));
 
 const server = app.listen(port, () => {
-	console.log(`Listening on port ${port}`);
+    console.log(`Listening on port ${port}`);
 });
 
 new Game(server).start();
