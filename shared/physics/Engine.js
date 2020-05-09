@@ -19,14 +19,14 @@ class PhysicsFactory {
         return collider;
     }
 
-    AABB(minBound = new Vec2(0, 0), maxBound = new Vec2(1, 1), config = {}) {
-        const aabb = new AABB(minBound, maxBound, this.engine, config);
+    AABB(minX=0, minY=0, maxX=1, maxY=1, isStatic=false) {
+        const aabb = new AABB(minX, minY, maxX, maxY, this.engine, isStatic);
         this.physicsObjects.push(aabb);
         return aabb;
     }
 
-    circle(center = new Vec2(0, 0), radius = 1, config = {}) {
-        const circle = new Circle(center, radius, this.engine, config);
+    circle(centerX=0, centerY=0, radius=1, isStatic=false) {
+        const circle = new Circle(centerX, centerY, radius, this.engine, isStatic);
         this.physicsObjects.push(circle);
         return circle;
     }
@@ -134,14 +134,14 @@ class Engine extends EventEmitter {
             a.position.y -= overlapY;
             a.velocity.x = 0;
             a.velocity.y = 0;
-            a.updateBoundsFromPosition();
+            a._updateBoundsFromPosition();
         }
         if(!b.isStatic) {
             b.position.x += overlapX;
             b.position.y += overlapY;
             b.velocity.x = 0;
             b.velocity.y = 0;
-            b.updateBoundsFromPosition();
+            b._updateBoundsFromPosition();
         }
 
 /*
@@ -202,12 +202,12 @@ class Engine extends EventEmitter {
         if(!a.isStatic) {
             a.position.x += (a.velocity.x * this.timestep) - (overlap * Math.cos(angleCollision));
             a.position.y += (a.velocity.y * this.timestep) - (overlap * Math.sin(angleCollision));
-            a.updateCenterFromPosition();
+            a._updateCenterFromPosition();
         }
         if(!b.isStatic) {
             b.position.x += (b.velocity.x * this.timestep) + (overlap * Math.cos(angleCollision));
             b.position.y += (b.velocity.y * this.timestep) + (overlap * Math.sin(angleCollision));
-            b.updateCenterFromPosition();
+            b._updateCenterFromPosition();
         }
         callback();
     }

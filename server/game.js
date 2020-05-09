@@ -2,7 +2,6 @@
 
 const socket = require('socket.io');
 const Engine = require('../shared/physics/engine.js');
-const Vec2 = require('../shared/physics/Vec2.js');
 
 class Game {
     constructor(server) {
@@ -90,9 +89,9 @@ class Game {
     init() {
         this.playerBodies = [];
         this.engine.add.collider(this.playerBodies, this.playerBodies);
-        //const world = this.engine.add.AABB(new Vec2(0, 300), new Vec2(800, 500), { isStatic: true });
+        //const world = this.engine.add.AABB(0, 300, 800, 500, true);
         //this.engine.add.collider(this.playerBodies, world);
-        const obstacle = this.engine.add.circle(new Vec2(400, 400), 64, { isStatic: true });
+        const obstacle = this.engine.add.circle(400, 400, 64, true);
         this.engine.add.collider(this.playerBodies, obstacle);
     }
 
@@ -101,8 +100,8 @@ class Game {
         const y = Math.round(Math.random() * 300 - 40);
         const width = 16;
         const height = 32;
-        //const player = this.engine.add.AABB(new Vec2(x, y), new Vec2(x + width, y + height));
-        const player = this.engine.add.circle(new Vec2(x, y), 32);
+        //const player = this.engine.add.AABB(x, y, x + width, y + height);
+        const player = this.engine.add.circle(x, y, 32);
         //player.maxSpeed = 0.5;
         player.maxVelocityX = 0.5;
         this.players[id] = player;

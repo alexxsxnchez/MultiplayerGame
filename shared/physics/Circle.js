@@ -6,20 +6,25 @@ const AABB = require('./AABB.js');
 const Vec2 = require('./Vec2.js');
 
 class Circle extends PhysicsObject {
-    constructor(center = new Vec2(0, 0), radius = 1, engine, config = {}) {
+    constructor(centerX, centerY, radius, engine, isStatic) {
         assert(radius > 0);
-        config.position = center;
-        super(engine, config);
-        this.center = center;
+        super(engine, isStatic);
+        this.center = new Vec2();
+        this.setPosition(centerX, centerY);
         this.radius = radius;
     }
 
     update(delta) {
         super.update(delta);
-        this.updateCenterFromPosition();
+        this._updateCenterFromPosition();
     }
 
-    updateCenterFromPosition() {
+    setPosition(x, y) {
+        super.setPosition(x, y);
+        this._updateCenterFromPosition();
+    }
+
+    _updateCenterFromPosition() {
         this.center.x = this.position.x;
         this.center.y = this.position.y;
     }

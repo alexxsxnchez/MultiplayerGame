@@ -6,21 +6,39 @@ class PhysicsObject {
 
     static counter = 0;
 
-    constructor(engine, config = {}) {
+    constructor(engine, isStatic) {
         this.id = PhysicsObject.counter;
         PhysicsObject.counter += 1;
         this.engine = engine;
-        this.isStatic = config.isStatic || false;
-        this.position = config.position || new Vec2(0, 0);
-        this.velocity = config.velocity || new Vec2(0, 0);
-        this.acceleration = config.acceleration || new Vec2(0, 0);
-        this.maxSpeed = config.maxSpeed || -1;
-        this.maxVelocityX = config.maxVelocityX || -1;
-        this.maxVelocityY = config.maxVelocityY || -1;
-        //this.mass = config.mass || 0; // 0 implies infinite (cannot be moved in collisions)
+        this.isStatic = isStatic;
+        this.position = new Vec2();
+        this.velocity = new Vec2();
+        this.acceleration = new Vec2();
+        this.maxSpeed = -1;
+        this.maxVelocityX = -1;
+        this.maxVelocityY = -1;
+        // this.mass = 0; // 0 implies infinite (cannot be moved in collisions)
         this._dx = 0;
         this._dy = 0;
         this.bottom = false;
+    }
+
+    setPosition(x, y) {
+        this.position.x = x;
+        this.position.y = y;
+        this.position.round();
+    }
+
+    setVelocity(x, y) {
+        this.velocity.x = x;
+        this.velocity.y = y;
+        this.velocity.round();
+    }
+
+    setAcceleration(x, y) {
+        this.acceleration.x = x;
+        this.acceleration.y = y;
+        this.acceleration.round();
     }
 
     update(delta) {
@@ -61,10 +79,10 @@ class PhysicsObject {
         this.position.x += this._dx;
         this.position.y += this._dy;
 
-        this.roundValues();
+        this._roundValues();
     }
 
-    roundValues() {
+    _roundValues() {
         this.position.round();
         this.velocity.round();
         this.acceleration.round();
