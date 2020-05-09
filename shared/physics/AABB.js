@@ -6,22 +6,27 @@ const Circle = require('./Circle.js');
 const Vec2 = require('./Vec2.js');
 
 class AABB extends PhysicsObject {
-    constructor(minBound = new Vec2(0, 0), maxBound = new Vec2(1, 1), engine, config = {}) {
-        assert(minBound.x < maxBound.x && minBound.y < maxBound.y);
-        config.position = minBound;
-        super(engine, config);
-        this.minBound = minBound;
-        this.maxBound = maxBound;
-        this.width = maxBound.x - minBound.x;
-        this.height = maxBound.y - minBound.y;
+    constructor(minX, minY, maxX, maxY, engine, isStatic) {
+        assert(minX < maxX && minY < maxY);
+        super(engine, isStatic);
+        this.minBound = new Vec2();
+        this.maxBound = new Vec2();
+        this.width = maxX - minX;
+        this.height = maxY - minY;
+        this.setPosition(minX, minY);
     }
 
     update(delta) {
         super.update(delta);
-        this.updateBoundsFromPosition();
+        this._updateBoundsFromPosition();
     }
 
-    updateBoundsFromPosition() {
+    setPosition(x, y) {
+        super.setPosition(x, y);
+        this._updateBoundsFromPosition();
+    }
+
+    _updateBoundsFromPosition() {
         this.minBound.x = this.position.x;
         this.maxBound.x = this.position.x + this.width;
         this.minBound.y = this.position.y;
