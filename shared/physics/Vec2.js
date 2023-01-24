@@ -4,10 +4,23 @@ class Vec2 {
     constructor(x=0, y=0) {
         this.x = x;
         this.y = y;
+        Object.freeze(this); // make this class immutable
+    }
+
+    X(value) {
+        return new Vec2(value, this.y);
+    }
+
+    Y(value) {
+        return new Vec2(this.x, value);
     }
 
     add(other) {
         return new Vec2(this.x + other.x, this.y + other.y);
+    }
+
+    sub(other) {
+        return new Vec2(this.x - other.x, this.y - other.y);
     }
 
     sMultiply(scalar) {
@@ -16,6 +29,16 @@ class Vec2 {
 
     sDivide(scalar) {
         return new Vec2(this.x / scalar, this.y / scalar);
+    }
+
+    neg() {
+        return this.sMultiply(-1);
+    }
+
+    clamp(maxVec, minVec) {
+        const x = Math.max(Math.min(this.x, maxVec.x), minVec.x);
+        const y = Math.max(Math.min(this.y, maxVec.y), minVec.y);
+        return new Vec2(x, y);
     }
 
     length() {
@@ -37,8 +60,9 @@ class Vec2 {
     }
 
     round() {
-        this.x = Number(this.x.toFixed(5));
-        this.y = Number(this.y.toFixed(5));
+        const x = Number(this.x.toFixed(5));
+        const y = Number(this.y.toFixed(5));
+        return new Vec2(x, y);
     }
 };
 

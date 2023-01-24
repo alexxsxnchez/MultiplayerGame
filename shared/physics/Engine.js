@@ -1,54 +1,38 @@
 'use strict';
 
-const EventEmitter = require('events').EventEmitter;
 const AABB = require('./AABB.js');
 const Circle = require('./Circle.js');
-const Collider = require('./Collider.js');
+const Factory = require('./Factory.js');
 const Vec2 = require('./Vec2.js');
 
-class PhysicsFactory {
-    constructor(engine) {
-        this.engine = engine;
-        this.physicsObjects = engine.physicsObjects;
-        this.colliders = engine.colliders;
-    }
-
-    collider(a, b, callback = () => {}) {
-        const collider = new Collider(a, b, callback);
-        this.colliders.push(collider);
-        return collider;
-    }
-
-    AABB(minX=0, minY=0, maxX=1, maxY=1, isStatic=false) {
-        const aabb = new AABB(minX, minY, maxX, maxY, this.engine, isStatic);
-        this.physicsObjects.push(aabb);
-        return aabb;
-    }
-
-    circle(centerX=0, centerY=0, radius=1, isStatic=false) {
-        const circle = new Circle(centerX, centerY, radius, this.engine, isStatic);
-        this.physicsObjects.push(circle);
-        return circle;
-    }
-};
-
-class Engine extends EventEmitter {
+class Engine {
 
     constructor(config = {}) {
-        super();
-        this.gravity = new Vec2(0, 0);
         if(config.gravity) {
-            this.gravity.x = config.gravity.x || 0;
-            this.gravity.y = config.gravity.y || 0;
+            this.gravity = new Vec2(config.gravity.x || 0, config.gravity.y || 0);
+        } else {
+            this.gravity = new Vec2();
         }
         this.physicsObjects = [];
         this.colliders = [];
-        this.add = new PhysicsFactory(this);
-        this.maxFPS = config.maxFPS || 60;
-        this.timestep = 1000 / this.maxFPS;
+        this.add = new Factory(this);
+
+        if(config.worldBounds) {
+            const WORLD_BUFFER = 10000;
+            this.worldBoundExists = true;
+            this.worldWalls = [
+                this.add.AABB(-WORLD_BUFFER, 0, 0, config.worldBounds.y, true, true), // left
+                this.add.AABB(0, -WORLD_BUFFER, config.worldBounds.x, 0, true, true), // top
+                this.add.AABB(config.worldBounds.x, 0, config.worldBounds.x + WORLD_BUFFER, config.worldBounds.y, true, true), // right
+                this.add.AABB(0, config.worldBounds.y, config.worldBounds.x, config.worldBounds.y + WORLD_BUFFER, true, true), // bottom
+            ]
+        } else {
+            this.worldBoundExists = false;
+            this.worldWalls = null;
+        }
     }
 
-    update(delta) {
+    nextStep(delta) {
         let collisions = [];
         for(let physicsObject of this.physicsObjects) {
             physicsObject.update(delta);
@@ -56,10 +40,11 @@ class Engine extends EventEmitter {
         for(let collider of this.colliders) {
             collisions = collisions.concat(collider.findCollisions());
         }
-        this.resolveCollisions(collisions);
+
+        this.resolveCollisions(collisions, delta);
     }
 
-    resolveCollisions(collisions) {
+    resolveCollisions(collisions, delta) {
         for(let collision of collisions) {
             const a = collision.a;
             const b = collision.b;
@@ -68,18 +53,21 @@ class Engine extends EventEmitter {
                 continue;
             }
             if(a instanceof AABB && b instanceof AABB) {
-                this.resolveAABBOnAABBCollision(a, b, callback);
+                this.resolveAABBOnAABBCollision(a, b, delta, callback);
             } else if(a instanceof Circle && b instanceof Circle) {
-                this.resolveCircleOnCircleCollision(a, b, callback);
+                this.resolveCircleOnCircleCollision(a, b, delta, callback);
             } else if(a instanceof AABB) {
-                this.resolveAABBOnCircleCollision(a, b, callback);
+                this.resolveAABBOnCircleCollision(a, b, delta, callback);
             } else {
-                this.resolveAABBOnCircleCollision(b, a, callback);
+                this.resolveAABBOnCircleCollision(b, a, delta, callback);
             }
         }
     }
 
-    resolveAABBOnAABBCollision(a, b, callback) {
+    // https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/previousinformation/physics6collisionresponse/2017%20Tutorial%206%20-%20Collision%20Response.pdf
+    // https://2dengine.com/?p=collisions
+
+    resolveAABBOnAABBCollision(a, b, delta, callback) {
         const overlapBias = 4;
 
         //let separateOnY = false;
@@ -122,7 +110,7 @@ class Engine extends EventEmitter {
         }
 
         if(overlapX || overlapY) {
-            callback;
+            callback();
         }
 
         if(!a.isStatic && !b.isStatic) {
@@ -130,17 +118,31 @@ class Engine extends EventEmitter {
             overlapY /= 2;
         }
         if(!a.isStatic) {
-            a.position.x -= overlapX;
-            a.position.y -= overlapY;
-            a.velocity.x = 0;
-            a.velocity.y = 0;
+            a.position = a.position.sub(new Vec2(overlapX, overlapY));
+            let newVelX = a.velocity.x;
+            let newVelY = a.velocity.y;
+            if(overlapX) {
+                newVelX = -a.velocity.x * b.restitution;
+            }
+            if(overlapY) {
+                newVelY = -a.velocity.y * b.restitution;
+            }
+            a.velocity = new Vec2(newVelX, newVelY);
+
             a._updateBoundsFromPosition();
         }
         if(!b.isStatic) {
-            b.position.x += overlapX;
-            b.position.y += overlapY;
-            b.velocity.x = 0;
-            b.velocity.y = 0;
+            b.position = b.position.add(new Vec2(overlapX, overlapY));
+            let newVelX = b.velocity.x;
+            let newVelY = b.velocity.y;
+            if(overlapX) {
+                newVelX = -b.velocity.x * a.restitution;
+            }
+            if(overlapY) {
+                newVelY = -b.velocity.y * a.restitution;
+            }
+            b.velocity = new Vec2(newVelX, newVelY);
+
             b._updateBoundsFromPosition();
         }
 
@@ -175,7 +177,7 @@ class Engine extends EventEmitter {
         }*/
     }
 
-    resolveCircleOnCircleCollision(a, b, callback) {
+    resolveCircleOnCircleCollision(a, b, delta, callback) {
         const distance = a.center.distance(b.center);
         let overlap = (a.radius + b.radius) - distance;
         
@@ -184,12 +186,10 @@ class Engine extends EventEmitter {
         const p = a.velocity.x * nx + a.velocity.y * ny - b.velocity.x * nx - b.velocity.y * ny;
 
         if(!a.isStatic) {
-            a.velocity.x -= p * nx;
-            a.velocity.y -= p * ny;
+            a.velocity = a.velocity.sub(new Vec2(p * nx, p * ny));
         }
         if(!b.isStatic) {
-            b.velocity.x += p * nx;
-            b.velocity.y += p * ny;
+            b.velocity = b.velocity.add(new Vec2(p * nx, p * ny));
         }
 
         const dvx = b.velocity.x - a.velocity.x;
@@ -200,54 +200,22 @@ class Engine extends EventEmitter {
             overlap /= 2;
         }
         if(!a.isStatic) {
-            a.position.x += (a.velocity.x * this.timestep) - (overlap * Math.cos(angleCollision));
-            a.position.y += (a.velocity.y * this.timestep) - (overlap * Math.sin(angleCollision));
+            const posXChange = (a.velocity.x * delta) - (overlap * Math.cos(angleCollision));
+            const posYChange = (a.velocity.y * delta) - (overlap * Math.sin(angleCollision));
+            a.position = a.position.add(new Vec2(posXChange, posYChange));
             a._updateCenterFromPosition();
         }
         if(!b.isStatic) {
-            b.position.x += (b.velocity.x * this.timestep) + (overlap * Math.cos(angleCollision));
-            b.position.y += (b.velocity.y * this.timestep) + (overlap * Math.sin(angleCollision));
+            const posXChange = (b.velocity.x * delta) - (overlap * Math.cos(angleCollision));
+            const posYChange = (b.velocity.y * delta) - (overlap * Math.sin(angleCollision));
+            b.position = b.position.add(new Vec2(posXChange, posYChange));
             b._updateCenterFromPosition();
         }
         callback();
     }
 
-    resolveAABBOnCircleCollision(aabb, circle, callback) {
+    resolveAABBOnCircleCollision(aabb, circle, delta, callback) {
 
-    }
-
-    async sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    async start() {
-        const timestep = this.timestep;
-        let stopped = false;
-        let delta = 0;
-        let prev = Date.now() - timestep;
-        while(!stopped) {
-            const now = Date.now();
-            delta += now - prev;
-            if(delta < timestep) {
-                await this.sleep(timestep);
-                continue;
-            }
-            this.emit('preUpdate');
-            prev = now;
-            let numUpdateSteps = 0;
-            while(delta >= timestep) {
-                this.update(timestep);
-                delta -= timestep;
-                numUpdateSteps++;
-                if(numUpdateSteps > 240) {
-                    // panic
-                    console.log('panic');
-                    delta = 0;
-                    break;
-                }
-            }
-            this.emit('postUpdate');
-        }
     }
 
     removeObject(object) {

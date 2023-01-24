@@ -18,6 +18,9 @@ class Collider {
     }
 
     // TODO: can do this more efficiently
+    // could do broad / narrow search
+    // sort and sweep algo
+    // also if a and b are same array, some improvements can be made
     findCollisions() {
         const collisions = [];
         for(let a of this.groupA) {

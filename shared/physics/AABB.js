@@ -27,20 +27,18 @@ class AABB extends PhysicsObject {
     }
 
     _updateBoundsFromPosition() {
-        this.minBound.x = this.position.x;
-        this.maxBound.x = this.position.x + this.width;
-        this.minBound.y = this.position.y;
-        this.maxBound.y = this.position.y + this.height;
+        this.minBound = new Vec2(this.position.x, this.position.y);
+        this.maxBound = new Vec2(this.position.x + this.width, this.position.y + this.height);
     }
 
-    intersectsAABB(other) {
-        return this.minBound.x < other.maxBound.x && 
-            this.maxBound.x > other.minBound.x &&
-            this.minBound.y < other.maxBound.y &&
-            this.maxBound.y > other.minBound.y;
+    intersectsAABB(aabb) {
+        return this.minBound.x < aabb.maxBound.x &&
+            this.maxBound.x > aabb.minBound.x &&
+            this.minBound.y < aabb.maxBound.y &&
+            this.maxBound.y > aabb.minBound.y;
     }
 
-    intersectsCircle(other) {
+    intersectsCircle(circle) {
         console.log("AABB on Circle");
         return false;
     }

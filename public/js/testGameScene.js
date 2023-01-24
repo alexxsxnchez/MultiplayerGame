@@ -33,8 +33,8 @@ module.exports = class TestGameScene extends Phaser.Scene {
 
         this.players = {};
 
-        const obstacle = this.add.sprite(400, 400, 'bomb');
-        obstacle.setDisplaySize(128, 128);
+        //const obstacle = this.add.sprite(400, 400, 'bomb');
+        //obstacle.setDisplaySize(128, 128);
 
         // Networking
         this.socket = io();
@@ -44,9 +44,9 @@ module.exports = class TestGameScene extends Phaser.Scene {
             for(let id in data) {
                 const x = data.x;
                 const y = data.y;
-                //const sprite = this.add.sprite(x + 8, y + 16, 'bigmario');
-                const sprite = this.add.sprite(x, y, 'bomb');
-                sprite.setDisplaySize(64, 64);
+                const sprite = this.add.sprite(x + 8, y + 16, 'bigmario');
+                //const sprite = this.add.sprite(x, y, 'bomb');
+                //sprite.setDisplaySize(64, 64);
                 this.players[id] = sprite;
                 if(id === this.socket.id) {
                     this.playerSprite = sprite;
@@ -59,9 +59,9 @@ module.exports = class TestGameScene extends Phaser.Scene {
             console.log('newPlayer');
             const x = data.x;
             const y = data.y;
-            //this.players[data.id] = this.add.sprite(x + 8, y + 16, 'bigmario');
-            this.players[data.id] = this.add.sprite(x, y, 'bomb');
-            this.players[data.id].setDisplaySize(64, 64);
+            this.players[data.id] = this.add.sprite(x + 8, y + 16, 'bigmario');
+            //this.players[data.id] = this.add.sprite(x, y, 'bomb');
+            //this.players[data.id].setDisplaySize(64, 64);
         });
 
         this.socket.on('removePlayer', playerId => {

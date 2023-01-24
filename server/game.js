@@ -1,16 +1,25 @@
 'use strict';
 
+const EventEmitter = require('events').EventEmitter;
 const socket = require('socket.io');
 const Engine = require('../shared/physics/engine.js');
 
-class Game {
+class Game extends EventEmitter {
     constructor(server) {
+        super();
         this.io = socket(server);
         this.players = {};
         this.engine = new Engine({
-            gravity: { y: 0 }//0.01 }
+            gravity: { y: 0.01 }, //0.01 }
+            worldBounds: {
+                x: 800,
+                y: 600,
+            }
         });
-        this.engine.on('postUpdate', () => {
+        this.maxFPS = 60;
+        this.timestep = 1000 / this.maxFPS;
+
+        this.on('postUpdate', () => {
             const state = this.getState();
             this.io.emit('state', state);
         });
@@ -26,14 +35,17 @@ class Game {
                 const hSpeed = 0.3;
                 const vSpeed = 0.3;//2;
                 if(input.left || input.right) {
-                    player.velocity.x = input.left ? -hSpeed : hSpeed; 
+                    player.velocity = player.velocity.X(input.left ? -hSpeed : hSpeed);
                 } else {
-                    player.velocity.x = 0;
+                    player.velocity = player.velocity.X(0);
                 }
                 if(input.up || input.down) {
-                    player.velocity.y = input.up ? -vSpeed : vSpeed;
+                    //player.velocity.y = input.up ? -vSpeed : vSpeed;
+                    if(input.up) {
+                        player.velocity = player.velocity.Y(-0.5);
+                    }
                 } else {
-                    player.velocity.y = 0;
+                    player.velocity = player.velocity.Y(0);
                 }
                 /*if(input.up) {
                     if(player.bottom) {
@@ -79,31 +91,63 @@ class Game {
             socket.broadcast.emit('newPlayer', playerData);
         });
 
+        this.initializeWorld();
     }
 
-    start() {
-        this.init();
-        this.engine.start();
-    }
-
-    init() {
+    initializeWorld() {
         this.playerBodies = [];
         this.engine.add.collider(this.playerBodies, this.playerBodies);
         //const world = this.engine.add.AABB(0, 300, 800, 500, true);
         //this.engine.add.collider(this.playerBodies, world);
-        const obstacle = this.engine.add.circle(400, 400, 64, true);
-        this.engine.add.collider(this.playerBodies, obstacle);
+        //const obstacle = this.engine.add.circle(400, 400, 64, true);
+        //this.engine.add.collider(this.playerBodies, obstacle);
     }
+
+    async sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async start() {
+        const timestep = this.timestep;
+        let stopped = false;
+        let delta = 0;
+        let prev = Date.now() - timestep;
+        while(!stopped) {
+            const now = Date.now();
+            delta += now - prev;
+            if(delta < timestep) {
+                await this.sleep(timestep);
+                continue;
+            }
+            this.emit('preUpdate');
+            prev = now;
+            let numUpdateSteps = 0;
+            while(delta >= timestep) {
+                this.engine.nextStep(timestep);
+                delta -= timestep;
+                numUpdateSteps++;
+                if(numUpdateSteps > 240) {
+                    // panic
+                    console.error('panic');
+                    this.engine.nextStep(delta);
+                    delta = 0;
+                }
+            }
+            this.emit('postUpdate');
+        }
+    }
+
 
     createPlayer(id) {
         const x = Math.round(Math.random() * 700 + 50);
-        const y = Math.round(Math.random() * 300 - 40);
+        const y = Math.round(Math.random() * 300);
         const width = 16;
         const height = 32;
-        //const player = this.engine.add.AABB(x, y, x + width, y + height);
-        const player = this.engine.add.circle(x, y, 32);
+        const player = this.engine.add.AABB(x, y, x + width, y + height);
+        //const player = this.engine.add.circle(x, y, 32);
         //player.maxSpeed = 0.5;
-        player.maxVelocityX = 0.5;
+        //player.maxVelocityX = 0.1;
+        player.restitution = 0.5;
         this.players[id] = player;
         this.playerBodies.push(player);
         return player;
