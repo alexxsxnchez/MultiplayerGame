@@ -6,9 +6,9 @@ const AABB = require('./AABB.js');
 const Vec2 = require('./Vec2.js');
 
 class Circle extends PhysicsObject {
-    constructor(centerX, centerY, radius, engine, isStatic) {
+    constructor(centerX, centerY, radius, engine, isStatic, mass) {
         assert(radius > 0);
-        super(engine, isStatic);
+        super(engine, isStatic, mass);
         this.setPosition(centerX, centerY);
         this.radius = radius;
     }

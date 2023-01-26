@@ -7,11 +7,19 @@ class Vec2 {
         Object.freeze(this); // make this class immutable
     }
 
-    X(value) {
+    X() {
+        return new Vec2(this.x, 0);
+    }
+
+    Y() {
+        return new Vec2(0, this.y);
+    }
+
+    replaceX(value) {
         return new Vec2(value, this.y);
     }
 
-    Y(value) {
+    replaceY(value) {
         return new Vec2(this.x, value);
     }
 
@@ -35,6 +43,10 @@ class Vec2 {
         return this.sMultiply(-1);
     }
 
+    dot(other) {
+        return this.x * other.x + this.y * other.y;
+    }
+
     clamp(maxVec, minVec) {
         const x = Math.max(Math.min(this.x, maxVec.x), minVec.x);
         const y = Math.max(Math.min(this.y, maxVec.y), minVec.y);
@@ -42,7 +54,11 @@ class Vec2 {
     }
 
     length() {
-        return Math.sqrt(this.x * this.x + this.y * this.y);
+        return Math.sqrt(this.lengthSquared());
+    }
+
+    lengthSquared() {
+        return this.x * this.x + this.y * this.y;
     }
 
     distance(other) {

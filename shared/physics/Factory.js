@@ -11,8 +11,8 @@ class Factory {
         this.colliders = engine.colliders;
     }
 
-    AABB(minX=0, minY=0, maxX=1, maxY=1, isStatic=false, isWorldBound=false) {
-        const aabb = new AABB(minX, minY, maxX, maxY, this.engine, isStatic);
+    AABB(minX=0, minY=0, maxX=1, maxY=1, isStatic=false, mass=1, isWorldBound=false) {
+        const aabb = new AABB(minX, minY, maxX, maxY, this.engine, isStatic, mass);
         this.physicsObjects.push(aabb);
         if(this.engine.worldBoundExists && !isWorldBound) {
             this.collider(this.engine.worldWalls, aabb);
@@ -20,8 +20,8 @@ class Factory {
         return aabb;
     }
 
-    circle(centerX=0, centerY=0, radius=1, isStatic=false) {
-        const circle = new Circle(centerX, centerY, radius, this.engine, isStatic);
+    circle(centerX=0, centerY=0, radius=1, isStatic=false, mass=1) {
+        const circle = new Circle(centerX, centerY, radius, this.engine, isStatic, mass);
         this.physicsObjects.push(circle);
         if(this.engine.worldBoundExists) {
             this.collider(this.engine.worldWalls, circle);

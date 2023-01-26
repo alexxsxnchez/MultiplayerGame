@@ -20,12 +20,12 @@ class Collider {
     // TODO: can do this more efficiently
     // could do broad / narrow search
     // sort and sweep algo
-    // also if a and b are same array, some improvements can be made
     findCollisions() {
         const collisions = [];
+        const pairs = new Set();
         for(let a of this.groupA) {
             for(let b of this.groupB) {
-                if(a === b) {
+                if(a === b || pairs.has(`${b.id},${a.id}`) || (a.im === 0 && b.im === 0)) {
                     continue;
                 }
                 const intersects = b instanceof AABB ? a.intersectsAABB(b) : a.intersectsCircle(b);
@@ -33,6 +33,7 @@ class Collider {
                     const collision = new Collision(a, b, this.callback);
                     collisions.push(collision);
                 }
+                pairs.add(`${a.id},${b.id}`);
             }
         }
         return collisions;
@@ -40,13 +41,13 @@ class Collider {
 
     removeObject(object) {
         let index = this.groupA.findIndex(element => {
-            element.id === object.id
+            return element.id === object.id
         });
         if(index >= 0) {
             this.groupA.splice(index, 1);
         }
         index = this.groupB.findIndex(element => {
-            element.id === object.id
+            return element.id === object.id
         });
         if(index >= 0) {
             this.groupB.splice(index, 1);

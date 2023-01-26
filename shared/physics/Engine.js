@@ -1,5 +1,6 @@
 'use strict';
 
+const assert = require('assert').strict;
 const AABB = require('./AABB.js');
 const Circle = require('./Circle.js');
 const Factory = require('./Factory.js');
@@ -13,6 +14,8 @@ class Engine {
         } else {
             this.gravity = new Vec2();
         }
+        this.unitSize = config.unitSize || 1;
+        assert(this.unitSize > 0);
         this.physicsObjects = [];
         this.colliders = [];
         this.add = new Factory(this);
@@ -21,10 +24,10 @@ class Engine {
             const WORLD_BUFFER = 10000;
             this.worldBoundExists = true;
             this.worldWalls = [
-                this.add.AABB(-WORLD_BUFFER, 0, 0, config.worldBounds.y, true, true), // left
-                this.add.AABB(0, -WORLD_BUFFER, config.worldBounds.x, 0, true, true), // top
-                this.add.AABB(config.worldBounds.x, 0, config.worldBounds.x + WORLD_BUFFER, config.worldBounds.y, true, true), // right
-                this.add.AABB(0, config.worldBounds.y, config.worldBounds.x, config.worldBounds.y + WORLD_BUFFER, true, true), // bottom
+                this.add.AABB(-WORLD_BUFFER, 0, 0, config.worldBounds.y, true, 0, true), // left
+                this.add.AABB(0, -WORLD_BUFFER, config.worldBounds.x, 0, true, 0, true), // top
+                this.add.AABB(config.worldBounds.x, 0, config.worldBounds.x + WORLD_BUFFER, config.worldBounds.y, true, 0, true), // right
+                this.add.AABB(0, config.worldBounds.y, config.worldBounds.x, config.worldBounds.y + WORLD_BUFFER, true, 0, true), // bottom
             ]
         } else {
             this.worldBoundExists = false;
@@ -41,31 +44,135 @@ class Engine {
             collisions = collisions.concat(collider.findCollisions());
         }
 
-        this.resolveCollisions(collisions, delta);
+        const resolvedCollisions = this.resolveCollisions(collisions);
+
+        // run callbacks
+        for (let collision of resolvedCollisions) {
+            //console.log(`${collision.a.id} collided with ${collision.b.id}`);
+            collision.callback();
+        }
     }
 
     resolveCollisions(collisions, delta) {
+        const resolvedCollisions = [];
+
         for(let collision of collisions) {
             const a = collision.a;
             const b = collision.b;
-            const callback = collision.callback;
-            if(a.isStatic && b.isStatic) {
-                continue;
-            }
+            let resolved = false;
+
             if(a instanceof AABB && b instanceof AABB) {
-                this.resolveAABBOnAABBCollision(a, b, delta, callback);
+                resolved = this.resolveAABBOnAABBCollision3(a, b);
             } else if(a instanceof Circle && b instanceof Circle) {
-                this.resolveCircleOnCircleCollision(a, b, delta, callback);
+                resolved = this.resolveCircleOnCircleCollision(a, b, delta);
             } else if(a instanceof AABB) {
-                this.resolveAABBOnCircleCollision(a, b, delta, callback);
+                resolved = this.resolveAABBOnCircleCollision(a, b, delta);
             } else {
-                this.resolveAABBOnCircleCollision(b, a, delta, callback);
+                resolved = this.resolveAABBOnCircleCollision(b, a, delta);
+            }
+            
+            if (resolved) {
+                resolvedCollisions.push(collision);
             }
         }
+        return resolvedCollisions;
     }
 
     // https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/previousinformation/physics6collisionresponse/2017%20Tutorial%206%20-%20Collision%20Response.pdf
     // https://2dengine.com/?p=collisions
+
+    resolveAABBOnAABBCollision3(a, b) {        
+        // first we need to find in which direction is the collision taking place (the side with smallest overlap)
+        // the following values should all be positive (in _most_ cases -- a lot of "stacking" and strong 
+        // penetration could cause a small negative overlap instead)
+        const overlapLeftRight = a.maxBound.x - b.minBound.x;
+        const overlapRightLeft = b.maxBound.x - a.minBound.x;
+        const overlapTopBottom = a.maxBound.y - b.minBound.y;
+        const overlapBottomTop = b.maxBound.y - a.minBound.y;
+
+        const smallestOverlap = Math.min(Math.min(overlapLeftRight, overlapRightLeft), Math.min(overlapTopBottom, overlapBottomTop));
+
+        let normal;
+        if (smallestOverlap === overlapLeftRight) {
+            normal = new Vec2(1, 0);
+        } else if (smallestOverlap === overlapRightLeft) {
+            normal = new Vec2(-1, 0);
+        } else if (smallestOverlap === overlapTopBottom) {
+            normal = new Vec2(0, 1);
+        } else {
+            normal = new Vec2(0, -1);
+        }
+
+        // the next step is to apply an instant impulse (can then determine velocity relative to each body's mass)
+        const relativeVelocity = b.velocity.sub(a.velocity);
+        const penetrationSpeed = relativeVelocity.dot(normal);
+
+        // if objects are separating do nothing (separating if normal and relVel is in same direction)
+        if(penetrationSpeed >= 0) {
+            return false;
+        }
+
+        // calculate average restitution (bounciness)
+        const e = (a.restitution + b.restitution) / 2;
+
+        // calculate and apply instant impulse
+        const totalInvMass = a.im + b.im;
+        const j = -(1 + e) * penetrationSpeed / totalInvMass;
+        const impulse = normal.sMultiply(j);
+        a.velocity = a.velocity.sub(impulse.sMultiply(a.im));
+        b.velocity = b.velocity.add(impulse.sMultiply(b.im));
+
+        // Use linear projection to move the objects out of each other by a 
+        // `correctionPercent` amount to stop the "sinking effect"
+        if(smallestOverlap > 0.1) {
+            const correctionPercent = 0.8;
+            const correction = normal.sMultiply(correctionPercent * smallestOverlap / totalInvMass);
+            a.setPosition(a.position.x - correction.x * a.im, a.position.y - correction.y * a.im);
+            b.setPosition(b.position.x + correction.x * b.im, b.position.y + correction.y * b.im);
+        }
+
+        a._roundValues();
+        b._roundValues();
+        return true;
+    }
+/*
+    resolveAABBOnAABBCollision2(a, b, delta, callback) {
+        // need penetration vector (direction is perpendicular to the collision face) -> component of relative velocity vector
+        // normal vector is the normalized version of penetration vector
+        // tangential vector is the other component of relative velocity vector (used for friction)
+
+        const relativeVelocity = a.velocity.sub(b.velocity);
+        let overlapX = 0;
+        let overlapY = 0;
+
+        const overlapLeftRight = a.maxBound.x - b.minBound.x;
+        const overlapRightLeft = a.minBound.x - b.maxBound.x;
+
+        if(relativeVelocity.x > 0) { // a is going right and/or b is going left
+            overlapX = overlapLeftRight;
+        } else if(relativeVelocity.x < 0) {
+            overlapX = overlapRightLeft; // a is going left and/or b is going right
+        } else {
+            // objects seem to be overlapping with zero relative velocity, so use which overlap is closer to 0
+            overlapX = Math.abs(overlapLeftRight) > Math.abs(overlapRightLeft) ? overlapRightLeft : overlapLeftRight;
+        }
+        const overlapTopBottom = a.maxBound.y - b.minBound.y;
+        const overlapBottomTop = a.minBound.y - b.maxBound.y;
+        if(relativeVelocity.y > 0) { // a is going down and/or b is going up
+            overlapY = overlapTopBottom;
+        } else if(relativeVelocity.y < 0) {
+            overlapY = overlapBottomTop; // a is going up and/or b is going down
+        } else {
+            // objects seem to be overlapping with zero relative velocity, so use which overlap is closer to 0
+            overlapY = Math.abs(overlapTopBottom) > Math.abs(overlapBottomTop) ? overlapBottomTop : overlapTopBottom;
+        }
+
+        if(Math.abs(overlapX) > Math.abs(overlapY)) {
+
+        }
+
+    }
+
 
     resolveAABBOnAABBCollision(a, b, delta, callback) {
         const overlapBias = 4;
@@ -146,25 +253,25 @@ class Engine {
             b._updateBoundsFromPosition();
         }
 
-/*
-        if((collision.aDirection.equals(new Vec2(0, 1)) && a.velocity.y > 0) ||
-            (collision.aDirection.equals(new Vec2(0, -1)) && a.velocity.y < 0)) {
-                a.acceleration.y = 0;
-                a.velocity.y = 0;
-        } else if((collision.aDirection.equals(new Vec2(1, 0)) && a.velocity.x > 0) ||
-            (collision.aDirection.equals(new Vec2(-1, 0)) && a.velocity.x < 0)) {
-                a.acceleration.x = 0;
-                a.velocity.x = 0;
-        }
-        if((collision.bDirection.equals(new Vec2(0, 1)) && b.velocity.y > 0) ||
-            (collision.bDirection.equals(new Vec2(0, -1)) && b.velocity.y < 0)) {
-                b.acceleration.y = 0;
-                b.velocity.y = 0;
-        } else if((collision.bDirection.equals(new Vec2(1, 0)) && b.velocity.x > 0) ||
-            (collision.bDirection.equals(new Vec2(-1, 0)) && b.velocity.x < 0)) {
-                b.acceleration.x = 0;
-                b.velocity.x = 0;
-        }
+
+        // if((collision.aDirection.equals(new Vec2(0, 1)) && a.velocity.y > 0) ||
+        //     (collision.aDirection.equals(new Vec2(0, -1)) && a.velocity.y < 0)) {
+        //         a.acceleration.y = 0;
+        //         a.velocity.y = 0;
+        // } else if((collision.aDirection.equals(new Vec2(1, 0)) && a.velocity.x > 0) ||
+        //     (collision.aDirection.equals(new Vec2(-1, 0)) && a.velocity.x < 0)) {
+        //         a.acceleration.x = 0;
+        //         a.velocity.x = 0;
+        // }
+        // if((collision.bDirection.equals(new Vec2(0, 1)) && b.velocity.y > 0) ||
+        //     (collision.bDirection.equals(new Vec2(0, -1)) && b.velocity.y < 0)) {
+        //         b.acceleration.y = 0;
+        //         b.velocity.y = 0;
+        // } else if((collision.bDirection.equals(new Vec2(1, 0)) && b.velocity.x > 0) ||
+        //     (collision.bDirection.equals(new Vec2(-1, 0)) && b.velocity.x < 0)) {
+        //         b.acceleration.x = 0;
+        //         b.velocity.x = 0;
+        // }
 
         // idea here is that static masses (mass === 0) don't move their positions
         // other masses share the position change needed to get rid of penetration
@@ -172,12 +279,12 @@ class Engine {
 
         // but actually maybe should just be in opposite direction of velocity (at least
         // for object that caused collision)
-        /*if(a.mass === 0) {
-            b.position
-        }*/
+        // if(a.mass === 0) {
+        //    b.position
+        // }
     }
-
-    resolveCircleOnCircleCollision(a, b, delta, callback) {
+*/
+    resolveCircleOnCircleCollision(a, b, delta) {
         const distance = a.center.distance(b.center);
         let overlap = (a.radius + b.radius) - distance;
         
@@ -211,16 +318,19 @@ class Engine {
             b.position = b.position.add(new Vec2(posXChange, posYChange));
             b._updateCenterFromPosition();
         }
-        callback();
+        return true;
     }
 
-    resolveAABBOnCircleCollision(aabb, circle, delta, callback) {
-
+    resolveAABBOnCircleCollision(aabb, circle, delta) {
+        return false;
     }
 
     removeObject(object) {
+        if(!object) {
+            return;
+        }
         const index = this.physicsObjects.findIndex(element => {
-            element.id === object.id
+            return element.id === object.id
         });
         if(index >= 0) {
             this.physicsObjects.splice(index, 1);

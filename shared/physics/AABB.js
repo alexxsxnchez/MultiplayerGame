@@ -6,9 +6,9 @@ const Circle = require('./Circle.js');
 const Vec2 = require('./Vec2.js');
 
 class AABB extends PhysicsObject {
-    constructor(minX, minY, maxX, maxY, engine, isStatic) {
+    constructor(minX, minY, maxX, maxY, engine, isStatic, mass) {
         assert(minX < maxX && minY < maxY);
-        super(engine, isStatic);
+        super(engine, isStatic, mass);
         this.minBound = new Vec2();
         this.maxBound = new Vec2();
         this.width = maxX - minX;

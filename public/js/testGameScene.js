@@ -10,6 +10,7 @@ module.exports = class TestGameScene extends Phaser.Scene {
 
         this.load.image('star', 'assets/star.png');
         this.load.image('bomb', 'assets/bomb.png');
+        this.load.image('wall', 'assets/platform.png');
 
         this.load.spritesheet('smallmario', 'assets/SmallMarioSpritesheet.png', {
             frameWidth: 16,
@@ -31,8 +32,6 @@ module.exports = class TestGameScene extends Phaser.Scene {
         this.cursors = this.input.keyboard.createCursorKeys();
         this.keySpace = this.input.keyboard.addKey('space');
 
-        this.players = {};
-
         //const obstacle = this.add.sprite(400, 400, 'bomb');
         //obstacle.setDisplaySize(128, 128);
 
@@ -41,10 +40,12 @@ module.exports = class TestGameScene extends Phaser.Scene {
 
         this.socket.on('init', data => {
             console.log('init');
-            for(let id in data) {
-                const x = data.x;
-                const y = data.y;
-                const sprite = this.add.sprite(x + 8, y + 16, 'bigmario');
+            this.players = {};
+            this.obstacles = {};
+            const players = data["players"];
+            for(let id in players) {
+                const player = players[id];
+                const sprite = this.add.sprite(player.x + 8, player.y + 16, 'bigmario');
                 //const sprite = this.add.sprite(x, y, 'bomb');
                 //sprite.setDisplaySize(64, 64);
                 this.players[id] = sprite;
@@ -52,6 +53,14 @@ module.exports = class TestGameScene extends Phaser.Scene {
                     this.playerSprite = sprite;
                     // this.cameras.main.startFollow(this.playerSprite, true, 0.1);
                 }	
+            }
+            const obstacles = data["obstacles"];
+            for(let id in obstacles) {
+                const name = id % 2 == 0 ? 'wall' : 'star';
+                const obstacle = obstacles[id];
+                const image = this.add.image(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2, name);
+                image.setDisplaySize(obstacle.width, obstacle.height);
+                this.obstacles[id] = image;
             }
         });
 
@@ -76,10 +85,18 @@ module.exports = class TestGameScene extends Phaser.Scene {
                 this.playerSprite.x = data.x + this.player.width / 2;
                 this.playerSprite.y = data.y + this.player.height / 2;
             }*/
-            for(let id in data) {
+            const players = data["players"];
+            for(let id in players) {
                 if(id in this.players) {
-                    this.players[id].x = data[id].x + 8;
-                    this.players[id].y = data[id].y + 16;
+                    this.players[id].x = players[id].x + 8;
+                    this.players[id].y = players[id].y + 16;
+                }
+            }
+            const obstacles = data["obstacles"];
+            for(let id in obstacles) {
+                if(id in this.obstacles) {
+                    this.obstacles[id].x = obstacles[id].x + obstacles[id].width / 2;
+                    this.obstacles[id].y = obstacles[id].y + obstacles[id].height / 2;
                 }
             }
         });

@@ -1,5 +1,6 @@
 'use strict';
 
+const assert = require('assert').strict;
 const Vec2 = require('./Vec2.js');
 const { clamp } = require('./Util.js');
 
@@ -7,7 +8,7 @@ class PhysicsObject {
 
     static counter = 0;
 
-    constructor(engine, isStatic, mass=0) {
+    constructor(engine, isStatic, mass) {
         if (this.constructor == PhysicsObject) {
             throw new Error("Abstract classes can't be instantiated.");
         }
@@ -23,7 +24,8 @@ class PhysicsObject {
         this.maxVelocityY = -1;
         this.maxVelocity = new Vec2(-1, -1); // negative numbers implies infinite
         this.restitution = 0;
-        this.im = mass === 0 ? 0 : 1 / mass; // 0 implies infinite (cannot be moved in collisions)
+        this.friction = 0;
+        this.im = mass === 0 || isStatic ? 0 : 1 / mass; // can have infinite mass object moving, but cannot have static object that is not infinite mass
         this._dx = 0;
         this._dy = 0;
         this.bottom = false;
@@ -38,14 +40,20 @@ class PhysicsObject {
     }
 
     setPosition(x, y) {
+        //x /= this.engine.unitSize;
+        //y /= this.engine.unitSize;
         this.position = new Vec2(x, y).round();
     }
 
     setVelocity(x, y) {
+        //x /= this.engine.unitSize;
+        //y /= this.engine.unitSize;
         this.velocity = new Vec2(x, y).round();
     }
 
     setAcceleration(x, y) {
+        //x /= this.engine.unitSize;
+        //y /= this.engine.unitSize;
         this.acceleration = new Vec2(x, y).round();
     }
 
@@ -108,7 +116,11 @@ class PhysicsObject {
 
     _roundValues() {
         this.position = this.position.round();
-        this.velocity = this.velocity.round();
+        if (this.velocity.lengthSquared() < 1) {
+            this.velocity = new Vec2();
+        } else {
+            this.velocity = this.velocity.round();
+        }
         this.acceleration = this.acceleration.round();
     }
 };
