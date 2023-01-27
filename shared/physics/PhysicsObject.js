@@ -1,6 +1,5 @@
 'use strict';
 
-const assert = require('assert').strict;
 const Vec2 = require('./Vec2.js');
 const { clamp } = require('./Util.js');
 
@@ -19,16 +18,16 @@ class PhysicsObject {
         this.position = new Vec2();
         this.velocity = new Vec2();
         this.acceleration = new Vec2();
-        this.maxSpeed = -1;
-        this.maxVelocityX = -1;
-        this.maxVelocityY = -1;
-        this.maxVelocity = new Vec2(-1, -1); // negative numbers implies infinite
+        this.maxSpeed = -1; // implies infinite
+        this.maxVelocityX = -1; // implies infinite
+        this.maxVelocityY = -1; // implies infinite
         this.restitution = 0;
         this.friction = 0;
         this.im = mass === 0 || isStatic ? 0 : 1 / mass; // can have infinite mass object moving, but cannot have static object that is not infinite mass
-        this._dx = 0;
-        this._dy = 0;
+        this.top = false;
         this.bottom = false;
+        this.left = false;
+        this.right = false;
     }
 
     intersectsAABB() {
@@ -61,27 +60,17 @@ class PhysicsObject {
         if(this.isStatic) {
             return;
         }
+        this.top = false;
         this.bottom = false;
+        this.left = false;
+        this.right = false;
 
+        // update velocity due to acceleration and gravity
         const velChangeX = (this.acceleration.x + this.engine.gravity.x) * delta;
         const velChangeY = (this.acceleration.y + this.engine.gravity.y) * delta;
         this.velocity = this.velocity.add(new Vec2(velChangeX, velChangeY));
 
-        // max velocity
-
-        // if(this.maxVelocityX === 0) {
-        //     this.velocity.x = 0;
-        // } else if(this.maxVelocityX > 0) {
-        //     // bug here: what if velocity.x is negative, but larger in magnitude than maxvelocity? Then we set to maxvelocity which is always positive...
-        //     this.velocity.x = this.maxVelocityX > Math.abs(this.velocity.x) ? this.velocity.x : this.maxVelocityX;
-        // }
-        // if(this.maxVelocityY === 0) {
-        //     this.velocity.y = 0;
-        // } else if(this.maxVelocityY > 0) {
-        //     // same bug as above^
-        //     this.velocity.y = Math.abs(this.maxVelocityY) > Math.abs(this.velocity.y) ? this.velocity.y : this.maxVelocityY;
-        // }
-        // could use clamp function from Vec2 class, but what if only one of
+        // clamp to max velocity
         let clampVelX = this.velocity.x;
         if(this.maxVelocityX >= 0) {
             clampVelX = clamp(this.velocity.x, this.maxVelocityX, -this.maxVelocityX);
@@ -92,7 +81,7 @@ class PhysicsObject {
         }
         this.velocity = new Vec2(clampVelX, clampVelY);
 
-        // max speed
+        // clamp to max speed
         if(this.maxSpeed === 0) {
             this.velocity = new Vec2();
         } else if(this.maxSpeed > 0) {
@@ -101,15 +90,11 @@ class PhysicsObject {
                 const multiplier = this.maxSpeed / length;
                 const maxVelocity = this.velocity.sMultiply(multiplier);
                 this.velocity = this.velocity.clamp(maxVelocity, maxVelocity.neg());
-                // // same bug as above
-                // this.velocity.x = Math.abs(maxVelocity.x) > Math.abs(this.velocity.x) ? this.velocity.x : maxVelocity.x;
-                // this.velocity.y = Math.abs(maxVelocity.y) > Math.abs(this.velocity.y) ? this.velocity.y : maxVelocity.y;
             }
         }
-        this._dx = this.velocity.x * delta;
-        this._dy = this.velocity.y * delta;
 
-        this.position = this.position.add(new Vec2(this._dx, this._dy));
+        // update position due to velocity
+        this.position = this.position.add(this.velocity.sMultiply(delta));
 
         this._roundValues();
     }

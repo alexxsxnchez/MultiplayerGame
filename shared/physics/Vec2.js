@@ -71,6 +71,12 @@ class Vec2 {
         return distX * distX + distY * distY;
     }
 
+    normalize() {
+        const length = this.length();
+        assert(length > 0);
+        return new Vec2(this.x / length, this.y / length);
+    }
+
     equals(other) {
         return this.x === other.x && this.y === other.y;
     }

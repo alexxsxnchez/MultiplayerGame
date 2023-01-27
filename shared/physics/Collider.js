@@ -8,6 +8,10 @@ class Collision {
         this.b = b;
         this.callback = callback;
     }
+
+    static getPairString(a, b) {
+        return `${a.id}:${b.id}`;
+    }
 }
 
 class Collider {
@@ -25,7 +29,7 @@ class Collider {
         const pairs = new Set();
         for(let a of this.groupA) {
             for(let b of this.groupB) {
-                if(a === b || pairs.has(`${b.id},${a.id}`) || (a.im === 0 && b.im === 0)) {
+                if(a === b || pairs.has(Collision.getPairString(b, a)) || (a.im === 0 && b.im === 0)) {
                     continue;
                 }
                 const intersects = b instanceof AABB ? a.intersectsAABB(b) : a.intersectsCircle(b);
@@ -33,7 +37,7 @@ class Collider {
                     const collision = new Collision(a, b, this.callback);
                     collisions.push(collision);
                 }
-                pairs.add(`${a.id},${b.id}`);
+                pairs.add(Collision.getPairString(a, b));
             }
         }
         return collisions;
@@ -55,4 +59,4 @@ class Collider {
     }
 };
 
-module.exports = Collider;
+module.exports = { Collider, Collision };

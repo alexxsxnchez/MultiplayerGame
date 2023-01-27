@@ -32,22 +32,17 @@ class Game extends EventEmitter {
             const player = this.createPlayer(id);
 
             socket.on('input', input => {
-                //return;
                 // eventually need to put this on queue of incoming packets.
-                const hSpeed = 300;
-                const vSpeed = 300;//2;
                 if(input.left || input.right) {
-                    // player.velocity = player.velocity.replaceX(input.left ? -hSpeed : hSpeed);
-                    player.acceleration = player.acceleration.replaceX(input.left ? -400 : 400);
+                    player.acceleration = player.acceleration.replaceX(input.left ? -200 : 200);
                 } else {
-                    player.velocity = player.velocity.replaceX(0);
                     player.acceleration = player.acceleration.replaceX(0);
                 }
                 if(input.up || input.down) {
                     //player.velocity.y = input.up ? -vSpeed : vSpeed;
-                    if(input.up) {
+                    if(input.up && player.bottom) {
                         player.velocity = player.velocity.replaceY(-210);
-                    } else {
+                    } else if(input.down) {
                         player.velocity = player.velocity.replaceY(210);
                     }
                 } else {
@@ -113,16 +108,19 @@ class Game extends EventEmitter {
 
         const obstacle = this.engine.add.AABB(300, 255, 350, 485, false, 5);
         obstacle.restitution = 1;
+        obstacle.friction = 0.05;
         this.obstacles[obstacle.id] = obstacle;
         this.obstacleBodies.push(obstacle);
 
         const obstacle2 = this.engine.add.AABB(30,21, 605, 90, false, 2);
         obstacle2.restitution = 1;
+        obstacle2.friction = 0.05;
         this.obstacles[obstacle2.id] = obstacle2;
         this.obstacleBodies.push(obstacle2);
 
         const obstacle3 = this.engine.add.AABB(25,1, 600, 28, false);
         obstacle3.restitution = 1;
+        obstacle3.friction = 0.05;
         this.obstacles[obstacle3.id] = obstacle3;
         this.obstacleBodies.push(obstacle3);
 
@@ -153,7 +151,6 @@ class Game extends EventEmitter {
             let numUpdateSteps = 0;
             while(delta >= timestep) {
                 this.engine.nextStep(timestep);
-                //this.engine.nextStep(0.01666);
                 delta -= timestep;
                 numUpdateSteps++;
                 if(numUpdateSteps > 240) {
@@ -175,9 +172,9 @@ class Game extends EventEmitter {
         const height = 32;
         const player = this.engine.add.AABB(x, y, x + width, y + height);
         //player.maxSpeed = 500;
-        player.setVelocity(24, 0);
-        player.maxVelocityX = 250;
+        player.maxVelocityX = 200;
         player.restitution = 0.1;
+        player.friction = 0.05;
         this.players[id] = player;
         this.playerBodies.push(player);
         return player;

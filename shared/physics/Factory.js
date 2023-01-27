@@ -2,7 +2,7 @@
 
 const AABB = require('./AABB.js');
 const Circle = require('./Circle.js');
-const Collider = require('./Collider.js');
+const { Collider } = require('./Collider.js');
 
 class Factory {
     constructor(engine) {
