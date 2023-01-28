@@ -2,18 +2,21 @@
 
 const assert = require('assert').strict;
 const PhysicsObject = require('./PhysicsObject.js');
-const Circle = require('./Circle.js');
 const Vec2 = require('./Vec2.js');
 
 class AABB extends PhysicsObject {
-    constructor(minX, minY, maxX, maxY, engine, isStatic, mass) {
+    constructor(engine, minX, minY, maxX, maxY, mass, isStatic, overlapOnly) {
         assert(minX < maxX && minY < maxY);
-        super(engine, isStatic, mass);
+        super(engine, mass, isStatic, overlapOnly);
         this.minBound = new Vec2();
         this.maxBound = new Vec2();
         this.width = maxX - minX;
         this.height = maxY - minY;
         this.setPosition(minX, minY);
+        this.top = false;
+        this.bottom = false;
+        this.left = false;
+        this.right = false;
     }
 
     update(delta) {
@@ -29,18 +32,6 @@ class AABB extends PhysicsObject {
     _updateBoundsFromPosition() {
         this.minBound = new Vec2(this.position.x, this.position.y);
         this.maxBound = new Vec2(this.position.x + this.width, this.position.y + this.height);
-    }
-
-    intersectsAABB(aabb) {
-        return this.minBound.x < aabb.maxBound.x &&
-            this.maxBound.x > aabb.minBound.x &&
-            this.minBound.y < aabb.maxBound.y &&
-            this.maxBound.y > aabb.minBound.y;
-    }
-
-    intersectsCircle(circle) {
-        console.log("AABB on Circle");
-        return false;
     }
 };
 

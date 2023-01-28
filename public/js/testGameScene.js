@@ -35,6 +35,7 @@ module.exports = class TestGameScene extends Phaser.Scene {
             console.log('init');
             this.players = {};
             this.obstacles = {};
+            this.circles = {};
             const players = data["players"];
             for(let id in players) {
                 const player = players[id];
@@ -51,6 +52,13 @@ module.exports = class TestGameScene extends Phaser.Scene {
                 const color = Phaser.Display.Color.RandomRGB().color;
                 const rectangle = this.add.rectangle(obstacle.x, obstacle.y, obstacle.width, obstacle.height, color);
                 this.obstacles[id] = rectangle;
+            }
+            const circles = data["circles"];
+            for(let id in circles) {
+                const circle = circles[id];
+                const color = Phaser.Display.Color.RandomRGB().color;
+                const circleShape = this.add.circle(circle.x, circle.y, circle.radius, color);
+                this.circles[id] = circleShape;
             }
         });
 
@@ -77,6 +85,13 @@ module.exports = class TestGameScene extends Phaser.Scene {
                 if(id in this.obstacles) {
                     this.obstacles[id].x = obstacles[id].x + obstacles[id].width / 2;
                     this.obstacles[id].y = obstacles[id].y + obstacles[id].height / 2;
+                }
+            }
+            const circles = data["circles"];
+            for(let id in circles) {
+                if(id in this.circles) {
+                    this.circles[id].x = circles[id].x;
+                    this.circles[id].y = circles[id].y;
                 }
             }
         });

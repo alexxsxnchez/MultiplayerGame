@@ -1,5 +1,7 @@
 'use strict';
 
+const assert = require('assert').strict;
+
 class Vec2 {
     constructor(x=0, y=0) {
         this.x = x;
@@ -73,7 +75,9 @@ class Vec2 {
 
     normalize() {
         const length = this.length();
-        assert(length > 0);
+        if (length === 0) {
+            return new Vec2();
+        }
         return new Vec2(this.x / length, this.y / length);
     }
 

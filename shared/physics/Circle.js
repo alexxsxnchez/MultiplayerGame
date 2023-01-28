@@ -2,24 +2,13 @@
 
 const assert = require('assert').strict;
 const PhysicsObject = require('./PhysicsObject.js');
-const AABB = require('./AABB.js');
-const Vec2 = require('./Vec2.js');
 
 class Circle extends PhysicsObject {
-    constructor(centerX, centerY, radius, engine, isStatic, mass) {
+    constructor(engine, centerX, centerY, radius, mass, isStatic, overlapOnly) {
         assert(radius > 0);
-        super(engine, isStatic, mass);
+        super(engine, mass, isStatic, overlapOnly);
         this.setPosition(centerX, centerY);
         this.radius = radius;
-    }
-
-    intersectsAABB(aabb) {
-        console.log("Circle on AABB");
-        return false;
-    }
-
-    intersectsCircle(otherCircle) {
-        return this.position.distanceSquared(otherCircle.position) < Math.pow(this.radius + otherCircle.radius, 2);
     }
 }
 

@@ -7,7 +7,7 @@ class PhysicsObject {
 
     static counter = 0;
 
-    constructor(engine, isStatic, mass) {
+    constructor(engine, mass, isStatic, overlapOnly) {
         if (this.constructor == PhysicsObject) {
             throw new Error("Abstract classes can't be instantiated.");
         }
@@ -15,6 +15,7 @@ class PhysicsObject {
         PhysicsObject.counter += 1;
         this.engine = engine;
         this.isStatic = isStatic;
+        this.overlapOnly = overlapOnly;
         this.position = new Vec2();
         this.velocity = new Vec2();
         this.acceleration = new Vec2();
@@ -24,10 +25,6 @@ class PhysicsObject {
         this.restitution = 0;
         this.friction = 0;
         this.im = mass === 0 || isStatic ? 0 : 1 / mass; // can have infinite mass object moving, but cannot have static object that is not infinite mass
-        this.top = false;
-        this.bottom = false;
-        this.left = false;
-        this.right = false;
     }
 
     intersectsAABB() {

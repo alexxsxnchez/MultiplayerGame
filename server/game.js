@@ -7,9 +7,12 @@ const Engine = require('../shared/physics/engine.js');
 class Game extends EventEmitter {
     constructor(server) {
         super();
+        this.started = false;
+        this.paused = false;
         this.io = socket(server);
         this.players = {};
         this.obstacles = {};
+        this.circles = {};
         this.engine = new Engine({
             gravity: { y: 500 },
             worldBounds: {
@@ -41,7 +44,7 @@ class Game extends EventEmitter {
                 if(input.up || input.down) {
                     //player.velocity.y = input.up ? -vSpeed : vSpeed;
                     if(input.up && player.bottom) {
-                        player.velocity = player.velocity.replaceY(-210);
+                        player.velocity = player.velocity.replaceY(-250);
                     } else if(input.down) {
                         player.velocity = player.velocity.replaceY(210);
                     }
@@ -93,7 +96,9 @@ class Game extends EventEmitter {
                 y: player.position.y
             }
             socket.broadcast.emit('newPlayer', playerData);
-            this.start();
+            if(!this.started) {
+                this.start();
+            }
         });
 
         this.initializeWorld();
@@ -106,24 +111,82 @@ class Game extends EventEmitter {
         this.engine.add.collider(this.obstacleBodies, this.obstacleBodies);
         this.engine.add.collider(this.playerBodies, this.obstacleBodies);
 
-        const obstacle = this.engine.add.AABB(300, 255, 350, 485, false, 5);
+        const obstacle = this.engine.add.AABB(300, 255, 350, 485, {mass:5});
         obstacle.restitution = 1;
         obstacle.friction = 0.05;
         this.obstacles[obstacle.id] = obstacle;
         this.obstacleBodies.push(obstacle);
 
-        const obstacle2 = this.engine.add.AABB(30,21, 605, 90, false, 2);
+        const obstacle2 = this.engine.add.AABB(30, 190, 605, 200, {mass:2, overlapOnly: false});
         obstacle2.restitution = 1;
         obstacle2.friction = 0.05;
         this.obstacles[obstacle2.id] = obstacle2;
         this.obstacleBodies.push(obstacle2);
 
-        const obstacle3 = this.engine.add.AABB(25,1, 600, 28, false);
+        const obstacle3 = this.engine.add.AABB(25, 180, 600, 189);
         obstacle3.restitution = 1;
         obstacle3.friction = 0.05;
         this.obstacles[obstacle3.id] = obstacle3;
         this.obstacleBodies.push(obstacle3);
 
+        this.circleBodies = [];
+        this.engine.add.collider(this.circleBodies, this.circleBodies);
+        this.engine.add.collider(this.obstacleBodies, this.circleBodies);
+        this.engine.add.collider(this.playerBodies, this.circleBodies);
+        const circle = this.engine.add.circle(625, 30, 75);
+        circle.restitution = 1;
+        const circle2 = this.engine.add.circle(750, 60, 15);
+        this.circleBodies.push(circle);
+        this.circleBodies.push(circle2);
+        this.circles[circle.id] = circle;
+        this.circles[circle2.id] = circle2;
+    }
+
+    createPlayer(id) {
+        const x = Math.round(Math.random() * 700 + 50);
+        const y = Math.round(Math.random() * 300);
+        const width = 16;
+        const height = 32;
+        const player = this.engine.add.AABB(x, y, x + width, y + height);
+        //player.maxSpeed = 500;
+        player.maxVelocityX = 250;
+        player.restitution = 0.1;
+        player.friction = 0.05;
+        this.players[id] = player;
+        this.playerBodies.push(player);
+        return player;
+    }
+    
+    getState() {
+        const state = {};
+        state["players"] = {};
+        state["obstacles"] = {};
+        state["circles"] = {};
+        for(let id in this.players) {
+            const playerPosition = this.players[id].position;
+            state["players"][id] = {
+                x: playerPosition.x,
+                y: playerPosition.y
+            }
+        }
+        for(let id in this.obstacles) {
+            const obstacle = this.obstacles[id];
+            state["obstacles"][id] = {
+                x: obstacle.position.x,
+                y: obstacle.position.y,
+                width: obstacle.width,
+                height: obstacle.height,
+            }
+        }
+        for(let id in this.circles) {
+            const circle = this.circles[id];
+            state["circles"][id] = {
+                x: circle.position.x,
+                y: circle.position.y,
+                radius: circle.radius,
+            }
+        }
+        return state;
     }
 
     async sleep(s) {
@@ -134,12 +197,17 @@ class Game extends EventEmitter {
         return Date.now() / 1000 // in seconds
     }
 
+    pause() {
+        this.paused = !this.paused;
+    }
+
     async start() {
+        this.started = true;
         const timestep = this.timestep;
-        let stopped = false;
+        this.paused = false;
         let delta = 0;
         let prev = this.now() - timestep;
-        while(!stopped) {
+        while(!this.paused) {
             const now = this.now();
             delta += now - prev;
             if(delta < timestep) {
@@ -163,46 +231,6 @@ class Game extends EventEmitter {
             this.emit('postUpdate');
         }
     }
-
-
-    createPlayer(id) {
-        const x = Math.round(Math.random() * 700 + 50);
-        const y = Math.round(Math.random() * 300);
-        const width = 16;
-        const height = 32;
-        const player = this.engine.add.AABB(x, y, x + width, y + height);
-        //player.maxSpeed = 500;
-        player.maxVelocityX = 200;
-        player.restitution = 0.1;
-        player.friction = 0.05;
-        this.players[id] = player;
-        this.playerBodies.push(player);
-        return player;
-    }
-    
-    getState() {
-        const state = {};
-        state["players"] = {};
-        state["obstacles"] = {};
-        for(let id in this.players) {
-            const playerPosition = this.players[id].position;
-            state["players"][id] = {
-                x: playerPosition.x,
-                y: playerPosition.y
-            }
-        }
-        for(let id in this.obstacles) {
-            const obstacle = this.obstacles[id];
-            state["obstacles"][id] = {
-                x: obstacle.position.x,
-                y: obstacle.position.y,
-                width: obstacle.width,
-                height: obstacle.height,
-            }
-        }
-        return state;
-    }
-    
 };
 
 module.exports = Game;
