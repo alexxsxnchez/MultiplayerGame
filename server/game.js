@@ -37,9 +37,11 @@ class Game extends EventEmitter {
             socket.on('input', input => {
                 // eventually need to put this on queue of incoming packets.
                 if(input.left || input.right) {
-                    player.acceleration = player.acceleration.replaceX(input.left ? -200 : 200);
+                    //player.acceleration = player.acceleration.replaceX(input.left ? -200 : 200);
+                    player.velocity = player.velocity.replaceX(input.left ? -200 : 200);
                 } else {
-                    player.acceleration = player.acceleration.replaceX(0);
+                    //player.acceleration = player.acceleration.replaceX(0);
+                    player.velocity = player.velocity.replaceX(0);
                 }
                 if(input.up || input.down) {
                     //player.velocity.y = input.up ? -vSpeed : vSpeed;
@@ -111,35 +113,57 @@ class Game extends EventEmitter {
         this.engine.add.collider(this.obstacleBodies, this.obstacleBodies);
         this.engine.add.collider(this.playerBodies, this.obstacleBodies);
 
-        const obstacle = this.engine.add.AABB(300, 255, 350, 485, {mass:5});
-        obstacle.restitution = 1;
-        obstacle.friction = 0.05;
-        this.obstacles[obstacle.id] = obstacle;
-        this.obstacleBodies.push(obstacle);
+        // const obstacle = this.engine.add.AABB(300, 255, 350, 485, {mass:5});
+        // obstacle.restitution = 1;
+        // obstacle.friction = 0.05;
+        // this.obstacles[obstacle.id] = obstacle;
+        // this.obstacleBodies.push(obstacle);
 
-        const obstacle2 = this.engine.add.AABB(30, 190, 605, 200, {mass:2, overlapOnly: false});
-        obstacle2.restitution = 1;
-        obstacle2.friction = 0.05;
-        this.obstacles[obstacle2.id] = obstacle2;
-        this.obstacleBodies.push(obstacle2);
+        // const obstacle2 = this.engine.add.AABB(30, 190, 605, 200, {mass:2, overlapOnly: false});
+        // obstacle2.restitution = 1;
+        // obstacle2.friction = 0.05;
+        // this.obstacles[obstacle2.id] = obstacle2;
+        // this.obstacleBodies.push(obstacle2);
 
-        const obstacle3 = this.engine.add.AABB(25, 180, 600, 189);
-        obstacle3.restitution = 1;
-        obstacle3.friction = 0.05;
-        this.obstacles[obstacle3.id] = obstacle3;
-        this.obstacleBodies.push(obstacle3);
+        // const obstacle3 = this.engine.add.AABB(25, 180, 600, 189);
+        // obstacle3.restitution = 1;
+        // obstacle3.friction = 0.05;
+        // this.obstacles[obstacle3.id] = obstacle3;
+        // this.obstacleBodies.push(obstacle3);
+
+        const obstacle4 = this.engine.add.AABB(300, 250, 340, 270);
+        obstacle4.restitution = 1;
+        obstacle4.friction = 0.05;
+        this.obstacles[obstacle4.id] = obstacle4;
+        this.obstacleBodies.push(obstacle4);
+
+        const obstacle5 = this.engine.add.AABB(350, 250, 390, 270);
+        obstacle5.restitution = 1;
+        obstacle5.friction = 0.05;
+        this.obstacles[obstacle5.id] = obstacle5;
+        this.obstacleBodies.push(obstacle5);
+
+        const obstacle6 = this.engine.add.AABB(400, 250, 440, 270);
+        obstacle6.restitution = 1;
+        obstacle6.friction = 0.05;
+        this.obstacles[obstacle6.id] = obstacle6;
+        this.obstacleBodies.push(obstacle6);
 
         this.circleBodies = [];
         this.engine.add.collider(this.circleBodies, this.circleBodies);
         this.engine.add.collider(this.obstacleBodies, this.circleBodies);
         this.engine.add.collider(this.playerBodies, this.circleBodies);
-        const circle = this.engine.add.circle(625, 30, 75);
-        circle.restitution = 1;
-        const circle2 = this.engine.add.circle(750, 60, 15);
-        this.circleBodies.push(circle);
-        this.circleBodies.push(circle2);
-        this.circles[circle.id] = circle;
-        this.circles[circle2.id] = circle2;
+        
+        // const circle = this.engine.add.circle(400, 300, 25);
+        // circle.restitution = 1;
+        // circle.friction = 0.01;
+        // this.circleBodies.push(circle);
+        // this.circles[circle.id] = circle;
+        // const circle2 = this.engine.add.circle(700, 60, 25);
+        // circle2.restitution = 1;
+        // circle2.friction = 0.01;
+        // this.circleBodies.push(circle2);
+        // this.circles[circle2.id] = circle2;
     }
 
     createPlayer(id) {
@@ -147,10 +171,11 @@ class Game extends EventEmitter {
         const y = Math.round(Math.random() * 300);
         const width = 16;
         const height = 32;
-        const player = this.engine.add.AABB(x, y, x + width, y + height);
+        const player = this.engine.add.AABB(x, y, x + width, y + height, {mass: 1.2});
         //player.maxSpeed = 500;
         player.maxVelocityX = 250;
         player.restitution = 0.1;
+        //player.restitution = 1;
         player.friction = 0.05;
         this.players[id] = player;
         this.playerBodies.push(player);
