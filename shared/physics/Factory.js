@@ -6,13 +6,13 @@ const { Collider } = require('./Collider.js');
 
 class Factory {
     constructor(engine) {
-        this.engine = engine;
+        this._engine = engine;
         this._worldWalls = null;
     }
 
     AABB(minX=0, minY=0, maxX=1, maxY=1, { mass=1, isStatic=false, overlapOnly=false, isWorldBound=false }={}) {
-        const aabb = new AABB(this.engine, minX, minY, maxX, maxY, mass, isStatic, overlapOnly);
-        this.engine.physicsObjects.push(aabb);
+        const aabb = new AABB(this._engine, minX, minY, maxX, maxY, mass, isStatic, overlapOnly);
+        this._engine.physicsObjects.push(aabb);
         if(this._worldWalls && !isWorldBound) {
             this.collider(this._worldWalls, aabb);
         }
@@ -20,8 +20,8 @@ class Factory {
     }
 
     circle(centerX=0, centerY=0, radius=1, { mass=1, isStatic=false, overlapOnly=false }={}) {
-        const circle = new Circle(this.engine, centerX, centerY, radius, mass, isStatic, overlapOnly);
-        this.engine.physicsObjects.push(circle);
+        const circle = new Circle(this._engine, centerX, centerY, radius, mass, isStatic, overlapOnly);
+        this._engine.physicsObjects.push(circle);
         if(this._worldWalls) {
             this.collider(this._worldWalls, circle);
         }
@@ -30,7 +30,7 @@ class Factory {
 
     collider(a, b, callback = () => {}) {
         const collider = new Collider(a, b, callback);
-        this.engine.colliders.push(collider);
+        this._engine.colliders.push(collider);
         return collider;
     }
 

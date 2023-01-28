@@ -2,28 +2,19 @@
 
 const assert = require('assert').strict;
 const { Collision } = require('./Collider.js');
-const Factory = require('./Factory.js');
 const Vec2 = require('./Vec2.js');
 
 class Engine {
 
-    constructor(config={}) {
+    constructor(gravity={}) {
         this.physicsObjects = [];
         this.colliders = [];
-        this.add = new Factory(this);
         this._recentCollisions = new Map();
+        this.gravity = new Vec2(gravity.x || 0, gravity.y || 0);
 
         // process config # TODO default params deconstruct
-        this.unitSize = config.unitSize || 1;
-        assert(this.unitSize > 0);
-        if(config.worldBounds) {
-            this.add.worldBounds(config.worldBounds.x, config.worldBounds.y);
-        }
-        if(config.gravity) {
-            this.gravity = new Vec2(config.gravity.x || 0, config.gravity.y || 0);
-        } else {
-            this.gravity = new Vec2();
-        }
+        // this.unitSize = config.unitSize || 1;
+        // assert(this.unitSize > 0);
     }
 
     nextStep(delta) {
@@ -35,7 +26,6 @@ class Engine {
         // 2. find collisions
         const collisions = [];
         for(let collider of this.colliders) {
-            //collisions = collisions.concat(collider.findCollisions());
             collisions.push(...collider.findCollisions());
         }
 
@@ -122,18 +112,18 @@ class Engine {
         });
     }
 
-    removeObject(object) {
-        if(!object) {
+    removeObject(obj) {
+        if(!obj) {
             return;
         }
         const index = this.physicsObjects.findIndex(element => {
-            return element.id === object.id
+            return element.id === obj.id
         });
         if(index >= 0) {
             this.physicsObjects.splice(index, 1);
         }
         for(let collider of this.colliders) {
-            collider.removeObject(object);
+            collider.removeObject(obj);
         }
     }
 };
